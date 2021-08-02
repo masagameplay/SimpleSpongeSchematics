@@ -6,7 +6,7 @@ plugins {
     id("org.spongepowered.gradle.plugin") version "1.1.1"
 }
 
-group = "org.spongepowered"
+group = "dev.masa"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -15,17 +15,17 @@ repositories {
 
 sponge {
     apiVersion("8.0.0")
-    plugin("example") {
+    plugin("simplespongeschematics") {
         loader(PluginLoaders.JAVA_PLAIN)
-        displayName("Example")
-        mainClass("org.spongepowered.example.Example")
-        description("Just testing things...")
+        displayName("SimpleSpongeSchematics")
+        mainClass("dev.masa.simplespongeschematics.SimpleSpongeSchematics")
+        description("Simple schematic tool for Sponge")
         links {
             homepage("https://spongepowered.org")
             source("https://spongepowered.org/source")
             issues("https://spongepowered.org/issues")
         }
-        contributor("Spongie") {
+        contributor("Masa") {
             description("Lead Developer")
         }
         dependency("spongeapi") {
@@ -35,7 +35,7 @@ sponge {
     }
 }
 
-val javaTarget = 8 // Sponge targets a minimum of Java 8
+val javaTarget = 11 // Sponge targets a minimum of Java 8
 java {
     sourceCompatibility = JavaVersion.toVersion(javaTarget)
     targetCompatibility = JavaVersion.toVersion(javaTarget)
