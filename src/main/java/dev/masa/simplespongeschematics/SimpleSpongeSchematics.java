@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.Server;
 import org.spongepowered.api.Sponge;
@@ -39,6 +40,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -153,6 +155,57 @@ public class SimpleSpongeSchematics {
                 })
                 .build(), "save", "/save");
 
+
+        event.register(
+                this.container,
+                Command.builder()
+                        .permission("simplespongeschematics.load")
+                        .addParameter(fileName)
+                        .executor(ctx -> {
+                            Optional<Player> player = ctx.cause().first(Player.class);
+                            if (player.isEmpty()) {
+                                return CommandResult.error(Component.text("Only players can execute this command!", NamedTextColor.RED));
+                            }
+
+                            final String file = ctx.requireOne(fileName);
+                            final Path desiredFilePath = this.schematicsDir.resolve(file + ".schem");
+                            if (!Files.isRegularFile(desiredFilePath)) {
+                                throw new CommandException(Component.text("File " + file + " was not a normal schemaic file"));
+                            }
+                            final Schematic schematic;
+                            final DataContainer schematicContainer;
+                            try (final GZIPInputStream stream = new GZIPInputStream(Files.newInputStream(desiredFilePath))) {
+                                schematicContainer = DataFormats.NBT.get().readFrom(stream);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                final StringWriter writer = new StringWriter();
+                                e.printStackTrace(new PrintWriter(writer));
+                                final Component errorText = Component.text(writer.toString().replace("\t", "    ")
+                                        .replace("\r\n", "\n")
+                                        .replace("\r", "\n")
+                                );
+
+                                return CommandResult.error(Component.text(
+                                        "Error loading schematic: " + e.getMessage(), NamedTextColor.RED)
+                                        .hoverEvent(HoverEvent.showText(errorText)));
+                            }
+                            schematic = Sponge.dataManager().translator(Schematic.class)
+                                    .orElseThrow(() -> new IllegalStateException("Expected a DataTranslator for a Schematic"))
+                                    .translate(schematicContainer);
+                            player.get().sendMessage(Component.text("Loaded schematic from " + file, NamedTextColor.GREEN));
+
+                            if (!this.schematicPlayers.containsKey(player.get().uniqueId())) {
+                                this.schematicPlayers.put(player.get().uniqueId(), new SchematicPlayer(player.get().uniqueId()));
+                            }
+
+                            final SchematicPlayer schematicPlayer = this.schematicPlayers.get(player.get().uniqueId());
+                            schematicPlayer.clipboard(schematic);
+                            schematicPlayer.origin(player.get().blockPosition());
+                            return CommandResult.success();
+                        })
+                        .build(),
+                "load", "/load"
+        );
 
         event.register(this.container, Command.builder()
                 .permission("simplespongeschematics.copy")
