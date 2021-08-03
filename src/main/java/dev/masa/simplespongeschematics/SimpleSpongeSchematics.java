@@ -17,15 +17,19 @@ import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.data.persistence.DataContainer;
 import org.spongepowered.api.data.persistence.DataFormats;
+import org.spongepowered.api.data.type.HandTypes;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.cause.entity.SpawnTypes;
+import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.lifecycle.ConstructPluginEvent;
 import org.spongepowered.api.event.lifecycle.RegisterCommandEvent;
 import org.spongepowered.api.event.lifecycle.StartingEngineEvent;
 import org.spongepowered.api.event.lifecycle.StoppingEngineEvent;
+import org.spongepowered.api.item.ItemTypes;
 import org.spongepowered.api.world.schematic.Schematic;
 import org.spongepowered.api.world.volume.archetype.ArchetypeVolume;
 import org.spongepowered.math.vector.Vector3i;
@@ -86,6 +90,28 @@ public class SimpleSpongeSchematics {
     public void onServerStopping(final StoppingEngineEvent<Server> event) {
         // Any tear down per-game instance. This can run multiple times when
         // using the integrated (singleplayer) server.
+    }
+
+    @Listener
+    public void onInteractWithToolPrimary(InteractBlockEvent.Primary.Start event, @Root ServerPlayer player){
+        if(!player.itemInHand(HandTypes.MAIN_HAND.get()).type().equals(ItemTypes.WOODEN_AXE.get())) return;
+        if(!this.schematicPlayers.containsKey(player.uniqueId())) {
+            this.schematicPlayers.put(player.uniqueId(), new SchematicPlayer(player.uniqueId()));
+        }
+        this.schematicPlayers.get(player.uniqueId()).firstPos(event.block().position());
+        player.sendMessage(Component.text("First position saved.", NamedTextColor.GREEN));
+        event.setCancelled(true);
+    }
+
+    @Listener
+    public void onInteractWithToolSecondary(InteractBlockEvent.Secondary event, @Root ServerPlayer player){
+        if(!player.itemInHand(HandTypes.MAIN_HAND.get()).type().equals(ItemTypes.WOODEN_AXE.get())) return;
+        if(!this.schematicPlayers.containsKey(player.uniqueId())) {
+            this.schematicPlayers.put(player.uniqueId(), new SchematicPlayer(player.uniqueId()));
+        }
+        this.schematicPlayers.get(player.uniqueId()).secondPos(event.block().position());
+        player.sendMessage(Component.text("Second position saved.", NamedTextColor.GREEN));
+        event.setCancelled(true);
     }
 
     @Listener
